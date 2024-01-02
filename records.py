@@ -26,7 +26,7 @@ def _make_var_keyword_annotation(annotation: typing.Any) -> typing.Any:
 
 
 class Record:
-    __slots__ = ()
+    __slots__ = ("_record_cached_hash", "_record_cached_repr")
 
     def __eq__(self, other: object) -> bool:
         """Check for equality.
@@ -41,8 +41,12 @@ class Record:
             return True
         return NotImplemented
 
-    def __hash__(self):
-        return hash(tuple(getattr(self, name) for name in self.__slots__))
+    def __hash__(self) -> int:
+        try:
+            return self._record_cached_hash
+        except AttributeError:
+            object.__setattr__(self, "_record_cached_hash", hash(tuple(getattr(self, name) for name in self.__slots__)))
+            return self._record_cached_hash
 
     def __setattr__(self, name: str, value: object, /) -> typing.Never:
         msg = f"{type(self).__name__} object does not support attribute assignment."
@@ -52,24 +56,28 @@ class Record:
         msg = f"{type(self).__name__} object does not support attribute deletion."
         raise TypeError(msg)
 
-    def __repr__(self):
-        init_signature = inspect.signature(self.__init__)
-        args: list[str] = []
-        # Using the bound `__init__()` means `inspect` takes care of `self`.
-        for parameter in init_signature.parameters.values():
-            param_repr = repr(getattr(self, parameter.name))
-            param_kind = parameter.kind
-            if param_kind is parameter.POSITIONAL_ONLY:
-                args.append(param_repr)
-            elif param_kind in (parameter.POSITIONAL_OR_KEYWORD, parameter.KEYWORD_ONLY):
-                args.append(f"{parameter.name}={param_repr}")
-            elif param_kind is parameter.VAR_POSITIONAL:
-                args.append(f"*{param_repr}")
-            elif param_kind is parameter.VAR_KEYWORD:
-                args.append(f"**{param_repr}")
-            else:
-                typing.assert_never(param_kind)
-        return f"{type(self).__name__}({', '.join(args)})"
+    def __repr__(self) -> str:
+        try:
+            return self._record_cached_repr
+        except AttributeError:
+            init_signature = inspect.signature(self.__init__)
+            args: list[str] = []
+            # Using the bound `__init__()` means `inspect` takes care of `self`.
+            for parameter in init_signature.parameters.values():
+                param_repr = repr(getattr(self, parameter.name))
+                param_kind = parameter.kind
+                if param_kind is parameter.POSITIONAL_ONLY:
+                    args.append(param_repr)
+                elif param_kind in (parameter.POSITIONAL_OR_KEYWORD, parameter.KEYWORD_ONLY):
+                    args.append(f"{parameter.name}={param_repr}")
+                elif param_kind is parameter.VAR_POSITIONAL:
+                    args.append(f"*{param_repr}")
+                elif param_kind is parameter.VAR_KEYWORD:
+                    args.append(f"**{param_repr}")
+                else:
+                    typing.assert_never(param_kind)
+            object.__setattr__(self, "_record_cached_repr", f"{type(self).__name__}({', '.join(args)})")
+            return self._record_cached_repr
 
 
 def record(func: typing.Callable[..., None]):  # noqa: ANN201
@@ -132,7 +140,6 @@ def record(func: typing.Callable[..., None]):  # noqa: ANN201
             break
         match_args.append(parameter.name)
 
-    
     cls_namespace = {
         "__qualname__": func.__qualname__,
         "__module__": func.__module__,
