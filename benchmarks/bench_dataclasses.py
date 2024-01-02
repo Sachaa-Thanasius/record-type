@@ -1,84 +1,29 @@
-import dataclasses
+import functools
 
-import records
-
-
-@dataclasses.dataclass(frozen=True, slots=True)
-class Point3DDataclass:
-    """A point in 3D space."""
-
-    x: float
-    y: float
-    z: float
-
-
-@records.record
-def Point3DRecord(x: float, y: float, z: float):
-    """A point in 3D space."""
-
-
-point_3D_dataclass = Point3DDataclass(1.0, 2.0, 3.0)
+from .setup_dataclasses import (
+    access_dataclass,
+    create_dataclass,
+    equal_dataclass,
+    hash_dataclass,
+    instantiate_dataclass,
+)
+from .setup_records import (
+    access_record,
+    create_record,
+    equal_record,
+    hash_record,
+    instantiate_record,
+)
 
 
-def create_dataclass():
-    @dataclasses.dataclass(frozen=True, slots=True)
-    class Point3D:
-        """A point in 3D space."""
-
-        x: float
-        y: float
-        z: float
-
-
-point_3D_record = Point3DRecord(1.0, 2.0, 3.0)
-
-
-def create_record():
-    @records.record
-    def Point3D(x: float, y: float, z: float):
-        """A point in 3D space."""
-
-
-def instantiate_dataclass():
-    Point3DDataclass(1.0, 2.0, 3.0)
-
-
-def instantiate_record():
-    Point3DRecord(1.0, 2.0, 3.0)
-
-
-def access_dataclass():
-    point_3D_dataclass.x
-    point_3D_dataclass.y
-    point_3D_dataclass.z
-
-
-def access_record():
-    point_3D_record.x
-    point_3D_record.y
-    point_3D_record.z
-
-
-def equal_dataclass():
-    point_3D_dataclass == point_3D_dataclass
-
-
-def equal_record():
-    point_3D_record == point_3D_record
-
-
-def hash_dataclass():
-    hash(point_3D_dataclass)
-
-
-def hash_record():
-    hash(point_3D_record)
+def bench(func1, func2, num_iterations: int) -> functools.partial[None]:
+    return (functools.partial(func1, num_iterations), functools.partial(func2, num_iterations))
 
 
 __benchmarks__ = [
-    (create_dataclass, create_record, "class creation"),
-    (instantiate_dataclass, instantiate_record, "instantiation"),
-    (access_dataclass, access_record, "attribute access"),
-    (equal_dataclass, equal_record, "equality"),
-    (hash_dataclass, hash_record, "hashing"),
+    (*bench(create_dataclass, create_record, 1), "class creation (dataclass)"),
+    (*bench(instantiate_dataclass, instantiate_record, 1_000), "instantiation (dataclass)"),
+    (*bench(access_dataclass, access_record, 10_000), "attribute access (dataclass)"),
+    (*bench(equal_dataclass, equal_record, 1_000), "equality (dataclass)"),
+    (*bench(hash_dataclass, hash_record, 1_000), "hashing (dataclass)"),
 ]

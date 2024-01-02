@@ -2,10 +2,10 @@ from typing import TypedDict, Unpack
 
 import pytest
 
-import records
+import record
 
 
-@records.record
+@record.record
 def AllParameterTypes(
     pos: float,
     /,
@@ -26,7 +26,7 @@ def test_slots():
 def test_no_slots():
     """No parameters, no slots."""
 
-    @records.record
+    @record.record
     def NoParameters():
         """An example with no parameters."""
 
@@ -36,7 +36,7 @@ def test_no_slots():
 def test_single_slots():
     """A single parameter, a single slot."""
 
-    @records.record
+    @record.record
     def SingleParameter(only_one: float):
         """An example with a single parameter."""
 
@@ -66,7 +66,7 @@ def test_annotations():
 
 
 def test_text_annotations():
-    @records.record
+    @record.record
     def Example(x: "int", *args: "int", **kwargs: "int"):
         """An example."""
 
@@ -78,7 +78,7 @@ def test_text_annotations():
 
 
 def test_unpack_kwags_annotations():
-    @records.record
+    @record.record
     def Example(**kwargs: Unpack[TypedDict]):
         pass
 
@@ -86,7 +86,7 @@ def test_unpack_kwags_annotations():
 
 
 def test_unpack_kwags_text_annotations():
-    @records.record
+    @record.record
     def Example(**kwargs: "Unpack[TypedDict]"):
         pass
 
@@ -96,7 +96,7 @@ def test_unpack_kwags_text_annotations():
 def test_no_annotations():
     """A record with no annotations is valid."""
 
-    @records.record
+    @record.record
     def NoAnnotations(x, y):
         """An example with no annotations."""
 
@@ -106,13 +106,13 @@ def test_no_annotations():
 def test_return_annotation():
     """The return annotation can only be `None` or unset."""
 
-    @records.record
+    @record.record
     def no_return_annotation():
         pass
 
     assert no_return_annotation()
 
-    @records.record
+    @record.record
     def redundant_return_annotation() -> None:
         pass
 
@@ -120,7 +120,7 @@ def test_return_annotation():
 
     with pytest.raises(TypeError):
 
-        @records.record
+        @record.record
         def bad_return_annotation() -> int:
             pass
 
@@ -128,7 +128,7 @@ def test_return_annotation():
 def test_doc():
     """__doc__ is preserved."""
 
-    @records.record
+    @record.record
     def Documented():
         """This is the docstring."""
 
@@ -138,7 +138,7 @@ def test_doc():
 def test_name():
     """__name__ is preserved."""
 
-    @records.record
+    @record.record
     def Named():
         pass
 
@@ -148,7 +148,7 @@ def test_name():
 def test_qualname():
     """__qualname__ is preserved."""
 
-    @records.record
+    @record.record
     def Inner():
         pass
 
@@ -158,7 +158,7 @@ def test_qualname():
 def test_module():
     """__module__ is preserved."""
 
-    @records.record
+    @record.record
     def InModule():
         pass
 
@@ -166,7 +166,7 @@ def test_module():
 
 
 def test_eq():
-    @records.record
+    @record.record
     def Point2D(x: float, y: float):
         """A simple 2D point."""
 
@@ -174,7 +174,7 @@ def test_eq():
     ins = Point2D(*args)
     assert ins == Point2D(*args)
 
-    @records.record
+    @record.record
     def Point1D(x: float):
         """A simple 1D point."""
 
@@ -191,7 +191,7 @@ def test_eq():
 
 
 def test_hash():
-    @records.record
+    @record.record
     def Point2D(x: float, y: float):
         """A simple 2D point."""
 
@@ -200,7 +200,7 @@ def test_hash():
 
 
 def test_default_values():
-    @records.record
+    @record.record
     def Defaults(a=1, /, b=2, *, c=3):
         pass
 
@@ -220,7 +220,7 @@ def test_bad_repr():
 
     funky_repr = FunkyRepr()
 
-    @records.record
+    @record.record
     def Example(x: float = 0.0, y: FunkyRepr = funky_repr):
         """A simple 2D point."""
 
@@ -230,7 +230,7 @@ def test_bad_repr():
 
 
 def test_immutable():
-    @records.record
+    @record.record
     def Example(x, y=None):
         """An example."""
 
@@ -268,7 +268,7 @@ def test_init():
 
 
 def test_init_annotations():
-    @records.record
+    @record.record
     def Example(x: int, y: int):
         """An example."""
 
@@ -278,7 +278,7 @@ def test_init_annotations():
 def test_no_parameters():
     """A record with no parameters is valid."""
 
-    @records.record
+    @record.record
     def NoParameters():
         """An example with no parameters."""
 
@@ -296,7 +296,4 @@ def test_repr():
         kwarg_1=6,
     )
 
-    assert (
-        repr(ins)
-        == "AllParameterTypes(1.0, pos_kw=2, *(3, 4), kw='5', **{'kwarg_1': 6})"
-    )
+    assert repr(ins) == "AllParameterTypes(1.0, pos_kw=2, *(3, 4), kw='5', **{'kwarg_1': 6})"

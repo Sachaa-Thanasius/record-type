@@ -28,7 +28,7 @@ def _make_var_keyword_annotation(annotation: typing.Any) -> typing.Any:
 class Record:
     __slots__ = ("_record_cached_hash", "_record_cached_repr")
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: object, /) -> bool:
         """Check for equality.
 
         Changed to use nominal subtyping for speed testing.
