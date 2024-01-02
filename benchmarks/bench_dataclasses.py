@@ -1,13 +1,13 @@
 import functools
 
-from .setup_dataclasses import (
+from benchmarks.setup_dataclasses import (
     access_dataclass,
     create_dataclass,
     equal_dataclass,
     hash_dataclass,
     instantiate_dataclass,
 )
-from .setup_records import (
+from benchmarks.setup_records import (
     access_record,
     create_record,
     equal_record,

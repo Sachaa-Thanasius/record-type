@@ -1,13 +1,13 @@
 import functools
 
-from .setup_namedtuples import (
+from benchmarks.setup_namedtuples import (
     access_namedtuple,
     create_namedtuple,
     equal_namedtuple,
     hash_namedtuple,
     instantiate_namedtuple,
 )
-from .setup_records import (
+from benchmarks.setup_records import (
     access_record,
     create_record,
     equal_record,

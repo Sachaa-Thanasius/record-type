@@ -105,6 +105,7 @@ ignore = ["tests", "benchmarks"]
 pythonVersion = "3.11"
 typeCheckingMode = "strict"
 
-reportPrivateUsage = "none"
+reportPrivateUsage = "warning"
+reportUnnecessaryIsInstance = "information"
 reportCallInDefaultInitializer = "warning"
 reportUnnecessaryTypeIgnoreComment = "warning"
