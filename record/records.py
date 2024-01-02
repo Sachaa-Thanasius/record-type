@@ -31,15 +31,29 @@ class Record:
     def __eq__(self, other: object, /) -> bool:
         """Check for equality.
 
-        Changed to use nominal subtyping for speed testing.
+        The comparison is done per-attribute to allow for duck typing (i.e.,
+        nominal typing is not used as a shortcut for comparing).
         """
 
-        if isinstance(other, type(self)):
-            for attr in self.__slots__:  # noqa: SIM110 # all() is too slow.
-                if getattr(self, attr) != getattr(other, attr):
-                    return False
+        # Implement short-circuit from issue #4.
+        other_slots: tuple[str, ...] | list[object] = getattr(type(other), "__slots__", [object()])
+        self_slots = type(self).__slots__
+        if isinstance(other_slots, tuple) and isinstance(self_slots, tuple) and id(other_slots) == id(self_slots):
             return True
-        return NotImplemented
+
+        other_attrs = frozenset(other_slots)
+        self_attrs = frozenset(self_slots)
+        if self_attrs != other_attrs:
+            # Avoids the question of what to do if there are extra attributes on
+            # `other`.
+            return NotImplemented
+
+        for attr in self_attrs:
+            if not hasattr(other, attr):
+                return NotImplemented
+            if getattr(self, attr) != getattr(other, attr):
+                return False
+        return True
 
     def __hash__(self) -> int:
         try:
@@ -82,6 +96,7 @@ class Record:
 
 def record(func: typing.Callable[..., None]):  # noqa: ANN201
     """Create a record type."""
+
     name = func.__name__
     func_signature = inspect.signature(func)
     if func_signature.return_annotation not in {inspect.Signature.empty, None}:
