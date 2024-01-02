@@ -21,9 +21,9 @@ def bench(func1, func2, num_iterations: int) -> functools.partial[None]:
 
 
 __benchmarks__ = [
-    (*bench(create_namedtuple, create_record, 1), "class creation (namedtuple)"),
+    (*bench(create_namedtuple, create_record, 10), "class creation (namedtuple)"),
     (*bench(instantiate_namedtuple, instantiate_record, 1_000), "instantiation (namedtuple)"),
     (*bench(access_namedtuple, access_record, 10_000), "attribute access (namedtuple)"),
-    (*bench(equal_namedtuple, equal_record, 1_000), "equality (namedtuple)"),
+    (*bench(equal_namedtuple, equal_record, 10_000), "equality (namedtuple)"),
     (*bench(hash_namedtuple, hash_record, 1_000), "hashing (namedtuple)"),
 ]
