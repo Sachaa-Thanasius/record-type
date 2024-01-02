@@ -99,31 +99,26 @@ def record(func: typing.Callable[..., None]):  # noqa: ANN201
     )
 
     parameters = (f"object.__setattr__(self, {name!r}, {name})" for name in func_signature.parameters)
-    init_body = (f"\n{' ' * 8}").join(parameters) or "pass"
+    init_body = (f"\n{' ' * 4}").join(parameters) or "pass"
 
-    if len(func_signature.parameters) == 1:
-        slots = f"{next(iter(func_signature.parameters))!r},"
-    else:
-        slots = ", ".join(map(repr, func_signature.parameters))
+    # Take a page from collections.namedtuple's implementation: creating a new class is faster with type than exec.
+    init_syntax = f"def __init__{init_signature}:\n    {init_body}"
+    globals_: dict[str, typing.Any] = {"__builtins__": {"object": object}}
+    exec(init_syntax, globals_)  # noqa: S102
+    record_init = globals_["__init__"]
 
-    class_syntax = f"""\
-class {name}(Record):
-    __slots__ = ({slots})
-
-    def __init__{init_signature}:
-        {init_body}
-"""
-    globals_: dict[str, typing.Any] = {"Record": Record}
-    exec(class_syntax, globals_)  # noqa: S102
-    cls = globals_[name]
-    cls.__qualname__ = func.__qualname__
-    cls.__module__ = func.__module__
-    cls.__doc__ = func.__doc__
     proposed_annotations = func.__annotations__.copy()
     try:
         del proposed_annotations["return"]
     except KeyError:
         pass
+
+    # The return annotations was guaranteed earlier.
+    record_init.__annotations__ = func.__annotations__ | {"return": None}
+    record_init.__defaults__ = func.__defaults__
+    record_init.__kwdefaults__ = func.__kwdefaults__
+
+    record_slots = tuple(func_signature.parameters)
 
     # Buid annotations dict from scratch to keep the iteration order.
     cls_annotations: dict[str, object] = {}
@@ -138,19 +133,21 @@ class {name}(Record):
 
         cls_annotations[parameter.name] = annotation
 
-    cls.__annotations__ = cls_annotations
-
     match_args: list[str] = []
     for parameter in func_signature.parameters.values():
         if parameter.kind in {parameter.VAR_POSITIONAL, parameter.KEYWORD_ONLY, parameter.VAR_KEYWORD}:
             break
         match_args.append(parameter.name)
 
-    cls.__match_args__ = tuple(match_args)
+    
+    cls_namespace = {
+        "__qualname__": func.__qualname__,
+        "__module__": func.__module__,
+        "__doc__": func.__doc__,
+        "__slots__": record_slots,
+        "__match_args__": tuple(match_args),
+        "__annotations__": cls_annotations,
+        "__init__": record_init,
+    }
 
-    # The return annotations was guaranteed earlier.
-    cls.__init__.__annotations__ = func.__annotations__ | {"return": None}
-    cls.__init__.__defaults__ = func.__defaults__
-    cls.__init__.__kwdefaults__ = func.__kwdefaults__
-
-    return cls
+    return type(name, (Record,), cls_namespace)
