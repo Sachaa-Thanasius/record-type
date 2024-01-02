@@ -31,22 +31,15 @@ class Record:
     def __eq__(self, other: object) -> bool:
         """Check for equality.
 
-        The comparison is done per-attribute to allow for duck typing (i.e.,
-        nominal typing is not used as a shortcut for comparing).
+        Changed to use nominal subtyping for speed testing.
         """
-        other_attrs = frozenset(getattr(type(other), "__slots__", [object()]))
-        self_attrs = frozenset(type(self).__slots__)
-        if self_attrs != other_attrs:
-            # Avoids the question of what to do if there are extra attributes on
-            # `other`.
-            return NotImplemented
 
-        for attr in self_attrs:
-            if not hasattr(other, attr):
-                return NotImplemented
-            if getattr(self, attr) != getattr(other, attr):
-                return False
-        return True
+        if isinstance(other, type(self)):
+            for attr in self.__slots__:  # noqa: SIM110 # all() is too slow.
+                if getattr(self, attr) != getattr(other, attr):
+                    return False
+            return True
+        return NotImplemented
 
     def __hash__(self):
         return hash(tuple(getattr(self, name) for name in self.__slots__))
