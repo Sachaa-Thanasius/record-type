@@ -1,7 +1,7 @@
-import record
+import record_type
 
 
-@record.record
+@record_type.record
 def Point3DRecord(x: float, y: float, z: float):
     """A point in 3D space."""
 
@@ -12,7 +12,7 @@ point_3D_record = Point3DRecord(1.0, 2.0, 3.0)
 def create_record(num_iterations: int):
     for _ in range(num_iterations):
 
-        @record.record
+        @record_type.record
         def Point3D(x: float, y: float, z: float):
             """A point in 3D space."""
 
