@@ -38,7 +38,7 @@ class Record:
         # Implement short-circuit from issue #4.
         other_slots: tuple[str, ...] | list[object] = getattr(type(other), "__slots__", [object()])
         self_slots = type(self).__slots__
-        if isinstance(other_slots, tuple) and isinstance(self_slots, tuple) and id(other_slots) == id(self_slots):
+        if id(other_slots) == id(self_slots):
             return True
 
         other_attrs = frozenset(other_slots)
@@ -64,11 +64,11 @@ class Record:
 
     def __setattr__(self, name: str, value: object, /) -> typing.Never:
         msg = f"{type(self).__name__} object does not support attribute assignment."
-        raise TypeError(msg)
+        raise AttributeError(msg)
 
     def __delattr__(self, name: str, /) -> typing.Never:
         msg = f"{type(self).__name__} object does not support attribute deletion."
-        raise TypeError(msg)
+        raise AttributeError(msg)
 
     def __repr__(self) -> str:
         try:
@@ -94,13 +94,13 @@ class Record:
             return self._record_cached_repr
 
 
-def record(func: typing.Callable[..., None]):  # noqa: ANN201
+def record(func: typing.Callable[..., None]):  # noqa: ANN201 # Not sure how to represent it.
     """Create a record type."""
 
     name = func.__name__
     func_signature = inspect.signature(func)
     if func_signature.return_annotation not in {inspect.Signature.empty, None}:
-        msg = "return type annotation can only be 'None' or unset"
+        msg = "Return type annotation can only be 'None' or unset."
         raise TypeError(msg)
 
     self_parameter = inspect.Parameter("self", inspect.Parameter.POSITIONAL_ONLY)
@@ -121,7 +121,7 @@ def record(func: typing.Callable[..., None]):  # noqa: ANN201
     init_syntax = f"def __init__{init_signature}:\n    {init_body}"
     globals_: dict[str, typing.Any] = {"__builtins__": {"object": object}}
     exec(init_syntax, globals_)  # noqa: S102
-    record_init = globals_["__init__"]
+    cls_init = globals_["__init__"]
 
     proposed_annotations = func.__annotations__.copy()
     try:
@@ -129,12 +129,12 @@ def record(func: typing.Callable[..., None]):  # noqa: ANN201
     except KeyError:
         pass
 
-    # The return annotations was guaranteed earlier.
-    record_init.__annotations__ = func.__annotations__ | {"return": None}
-    record_init.__defaults__ = func.__defaults__
-    record_init.__kwdefaults__ = func.__kwdefaults__
+    # The return annotation was guaranteed earlier.
+    cls_init.__annotations__ = func.__annotations__ | {"return": None}
+    cls_init.__defaults__ = func.__defaults__
+    cls_init.__kwdefaults__ = func.__kwdefaults__
 
-    record_slots = tuple(func_signature.parameters)
+    cls_slots = tuple(func_signature.parameters)
 
     # Buid annotations dict from scratch to keep the iteration order.
     cls_annotations: dict[str, object] = {}
@@ -159,10 +159,10 @@ def record(func: typing.Callable[..., None]):  # noqa: ANN201
         "__qualname__": func.__qualname__,
         "__module__": func.__module__,
         "__doc__": func.__doc__,
-        "__slots__": record_slots,
+        "__slots__": cls_slots,
         "__match_args__": tuple(match_args),
         "__annotations__": cls_annotations,
-        "__init__": record_init,
+        "__init__": cls_init,
     }
 
     return type(name, (Record,), cls_namespace)
