@@ -236,16 +236,16 @@ def test_immutable():
 
     ins = Example(1)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(AttributeError):
         ins.x = 2
 
-    with pytest.raises(TypeError):
+    with pytest.raises(AttributeError):
         ins.y = 3
 
-    with pytest.raises(TypeError):
+    with pytest.raises(AttributeError):
         del ins.x
 
-    with pytest.raises(TypeError):
+    with pytest.raises(AttributeError):
         del ins.y
 
 
