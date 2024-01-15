@@ -1,3 +1,4 @@
 import record_type
 
-record_type.register()
+# This is necessary to ensure files with the "record" encoding are processed properly.
+record_type.register() 
