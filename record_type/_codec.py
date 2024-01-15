@@ -12,19 +12,20 @@ def transform(src: str) -> str:
     all_tokens = list(tokenize.generate_tokens(tokenize_target.readline))
 
     for i, token in enumerate(all_tokens[:-2]):
-        # Find and replace all instances of "struct RecordName(..." with the record import, decorator, and "def".
+        # Find and replace all instances of "struct RecordName(..." with the decorator and "def".
         if (
-            (token.type == tokenize.NAME and token.string == "struct")
+            token.type == tokenize.NAME
+            and token.string == "struct"
             and all_tokens[i + 1].type == tokenize.NAME
-            and (all_tokens[i + 2].type == tokenize.OP and all_tokens[i + 2].string == "(")
+            and all_tokens[i + 2].type == tokenize.OP
+            and all_tokens[i + 2].string == "("
         ):
             start_row, start_col = token.start
             indent = lines[start_row][:start_col]
-            lines[start_row : start_row + 1] = [
-                f"{indent}from record_type import record\n",
-                f"{indent}@record\n",
-                lines[start_row].replace("struct", "def", 1),
-            ]
+            lines[start_row : start_row + 1] = [f"{indent}@record\n", lines[start_row].replace("struct", "def", 1)]
+
+    # Add the import to the start of the file.
+    lines.insert(2, "from record_type import record\n")
 
     return "".join(lines)
 
@@ -36,29 +37,29 @@ def untransform(src: bytes) -> bytes:
 
     all_tokens = list(tokenize.tokenize(tokenize_target.readline))
 
-    for i, token in enumerate(all_tokens[:-8]):
-        # Find and replace all places with the expanded import + decorator + "def" and convert them back to just "struct".
-        if (
-            token.type == tokenize.NAME
-            and token.string == "from"
-            and all_tokens[i + 1].type == tokenize.NAME
-            and all_tokens[i + 1].string == "record_type"
-            and all_tokens[i + 2].type == tokenize.NAME
-            and all_tokens[i + 2].string == "import"
-            and all_tokens[i + 3].type == tokenize.NAME
-            and all_tokens[i + 3].string == "record"
-            and all_tokens[i + 4].type == tokenize.NEWLINE
-            and all_tokens[i + 5].type == tokenize.OP
-            and all_tokens[i + 5].string == "@"
-            and all_tokens[i + 6].type == tokenize.NAME
-            and all_tokens[i + 6].string == "record"
-            and all_tokens[i + 7].type == tokenize.NEWLINE
-            and all_tokens[i + 8].type == tokenize.NAME
-            and all_tokens[i + 8].string == "def"
-        ):
-            start_row = token.start[0]
-            end_row = all_tokens[i + 8].start[0]
-            lines[start_row:end_row] = [lines[end_row].replace(b"def", b"struct", 1)]
+    for i, token in enumerate(all_tokens[:-2]):
+        match (token, *all_tokens[i + 1 : i + 3]):
+            case (
+                tokenize.TokenInfo(tokenize.Name, "from"),
+                tokenize.TokenInfo(tokenize.Name, "record_type"),
+                tokenize.TokenInfo(tokenize.Name, "import"),
+                tokenize.TokenInfo(tokenize.Name, "record"),
+            ):
+                # Find the imports of record from record_type and remove them.
+                start_row = token.start[0]
+                del lines[start_row]
+            case (
+                tokenize.TokenInfo(tokenize.OP, "@"),
+                tokenize.TokenInfo(tokenize.Name, "record"),
+                tokenize.TokenInfo(tokenize.NEWLINE),
+                tokenize.TokenInfo(tokenize.Name, "def"),
+            ):
+                # Find all places with the @record decorator + "def" and replace them with "struct".
+                start_row = token.start[0]
+                end_row = all_tokens[i + 3].start[0]
+                lines[start_row:end_row] = [lines[end_row].replace(b"def", b"struct", 1)]
+            case _:
+                pass
 
     return b"".join(lines)
 
