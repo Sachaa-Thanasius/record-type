@@ -12,7 +12,6 @@ def transform(src: str) -> str:
     all_tokens = list(tokenize.generate_tokens(tokenize_target.readline))
 
     for i, token in enumerate(all_tokens[:-2]):
-        # Find and replace all instances of "struct RecordName(..." with the decorator and "def".
         if (
             token.type == tokenize.NAME
             and token.string == "struct"
@@ -20,6 +19,7 @@ def transform(src: str) -> str:
             and all_tokens[i + 2].type == tokenize.OP
             and all_tokens[i + 2].string == "("
         ):
+            # Find and replace all instances of "struct RecordName(..." with the record decorator and "def".
             start_row, start_col = token.start
             indent = lines[start_row][:start_col]
             lines[start_row : start_row + 1] = [f"{indent}@record\n", lines[start_row].replace("struct", "def", 1)]
@@ -37,7 +37,7 @@ def untransform(src: bytes) -> bytes:
 
     all_tokens = list(tokenize.tokenize(tokenize_target.readline))
 
-    for i, token in enumerate(all_tokens[:-2]):
+    for i, token in enumerate(all_tokens[:-3]):
         match (token, *all_tokens[i + 1 : i + 3]):
             case (
                 tokenize.TokenInfo(tokenize.Name, "from"),
@@ -45,7 +45,7 @@ def untransform(src: bytes) -> bytes:
                 tokenize.TokenInfo(tokenize.Name, "import"),
                 tokenize.TokenInfo(tokenize.Name, "record"),
             ):
-                # Find the imports of record from record_type and remove them.
+                # Find the imports of record from record_type and remove them. Probably a bit too much.
                 start_row = token.start[0]
                 del lines[start_row]
             case (
