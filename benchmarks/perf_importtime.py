@@ -90,15 +90,16 @@ class C{n}:
 """
 
 
-def run_test(name: str, n: int) -> None:
+def run_test(repetitions: int) -> float:
     start = time.perf_counter()
-    while n > 0:
+
+    for _ in range(repetitions):
         import perftemp  # noqa: F401
 
         del sys.modules["perftemp"]
-        n -= 1
+
     end = time.perf_counter()
-    print(name, (end - start))
+    return end - start
 
 
 def write_perftemp(count: int, template: str, setup: str) -> None:
@@ -109,36 +110,44 @@ def write_perftemp(count: int, template: str, setup: str) -> None:
             f.write(template.format(n=n))
 
 
-# fmt: off
-test_cases: tuple[str, str, str] = [
-    ("standard classes",    STANDARD_TEMPLATE,      ""),
-    ("namedtuple",          NAMEDTUPLE_TEMPLATE,    "from typing import NamedTuple"),
-    ("dataclasses",         DATACLASS_TEMPLATE,     "from dataclasses import dataclass"),
-    ("attrs",               ATTRS_TEMPLATE,         "from attrs import frozen"),
-    ("msgspec",             MSGSPEC_TEMPLATE,       "from msgspec import Struct"),
-    ("record",              RECORD_TEMPLATE,        "from record_type import record"),
-    ("cluegen",             CLUEGEN_TEMPLATE,       "from bin._cluegen import Datum"),
-    ("dataklasses",         DATAKLASS_TEMPLATE,     "from bin._dataklasses import dataklass"),
-]
-# fmt: on
+def main(repetitions: int = 100) -> None:
+    CLASS_COUNT = 100
 
+    # Create the test cases.
+    # fmt: off
+    test_cases: tuple[str, str, str] = [
+        ("standard classes",    STANDARD_TEMPLATE,      ""),
+        ("namedtuple",          NAMEDTUPLE_TEMPLATE,    "from typing import NamedTuple"),
+        ("dataclasses",         DATACLASS_TEMPLATE,     "from dataclasses import dataclass"),
+        ("attrs",               ATTRS_TEMPLATE,         "from attrs import frozen"),
+        ("msgspec",             MSGSPEC_TEMPLATE,       "from msgspec import Struct"),
+        ("record",              RECORD_TEMPLATE,        "from record_type import record"),
+        ("cluegen",             CLUEGEN_TEMPLATE,       "from bin._cluegen import Datum"),
+        ("dataklasses",         DATAKLASS_TEMPLATE,     "from bin._dataklasses import dataklass"),
+    ]
+    # fmt: on
 
-PADDING = 18
-CLASS_COUNT = 100
-
-
-def main(reps: int = 100) -> None:
+    # Run the tests and collect the results.
+    results: dict[str, float] = {}
     for name, template, setup in test_cases:
         write_perftemp(CLASS_COUNT, template, setup)
-        if setup:
-            try:
-                run_test(name.ljust(PADDING), reps)
-            except ImportError:
-                print(f"{name} not installed")
+        try:
+            timespan = run_test(repetitions)
+        except ImportError:
+            print(f"{name} not installed")
         else:
-            run_test(name.ljust(PADDING), reps)
+            results[name] = timespan
+
+    sorted_results = sorted(results.items(), key=lambda r: r[1])
+
+    # Pretty-print the results.
+    PADDING = 20
+
+    print(f"{f'{CLASS_COUNT} Classes':>{PADDING}} │ Time (s)")
+    print(f"{'─' * PADDING}─┼──────────")
+    print("\n".join(f"{name:>{PADDING}} │ {timespan:.5f}" for name, timespan in sorted_results))
 
 
 if __name__ == "__main__":
-    reps = int(sys.argv[1]) if len(sys.argv) == 2 else 100
-    raise SystemExit(main(reps))
+    repetitions = int(sys.argv[1]) if len(sys.argv) == 2 else 100
+    raise SystemExit(main(repetitions))
