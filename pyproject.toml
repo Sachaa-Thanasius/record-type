@@ -16,8 +16,11 @@ classifiers = ["Development Status :: 3 - Alpha"]
 Repository = "https://github.com/brettcannon/record-type"
 
 [project.optional-dependencies]
-test = ["pytest"]                             # py -m pytest test_records.py
-benchmark = ["richbench", "attrs", "msgspec"] # py -m richbench --repeat 5 --times 1000 benchmarks/
+# py -m pytest test_records.py
+test = ["pytest"]
+# py -m richbench --repeat 5 --times 500 benchmarks/
+benchmark = ["richbench", "attrs", "msgspec"]
+# py -m benchmarks.perf_importtime
 
 [tool.ruff]
 include = ["record_type"]
@@ -110,6 +113,6 @@ ignore = ["tests", "benchmarks", "examples"]
 pythonVersion = "3.11"
 typeCheckingMode = "strict"
 
-reportPrivateUsage = "warning"
+reportPrivateUsage = "none"
 reportCallInDefaultInitializer = "warning"
 reportUnnecessaryTypeIgnoreComment = "warning"

@@ -2,6 +2,7 @@ import codecs
 import tokenize
 from encodings import utf_8
 from io import BytesIO, StringIO
+from tokenize import TokenInfo
 
 
 def transform(src: str) -> str:
@@ -12,17 +13,14 @@ def transform(src: str) -> str:
     all_tokens = list(tokenize.generate_tokens(tokenize_target.readline))
 
     for i, token in enumerate(all_tokens[:-2]):
-        if (
-            token.type == tokenize.NAME
-            and token.string == "struct"
-            and all_tokens[i + 1].type == tokenize.NAME
-            and all_tokens[i + 2].type == tokenize.OP
-            and all_tokens[i + 2].string == "("
-        ):
-            # Find and replace all instances of "struct RecordName(..." with the record decorator and "def".
-            start_row, start_col = token.start
-            indent = lines[start_row][:start_col]
-            lines[start_row : start_row + 1] = [f"{indent}@record\n", lines[start_row].replace("struct", "def", 1)]
+        match (token, all_tokens[i + 1], all_tokens[i + 2]):
+            case (TokenInfo(tokenize.NAME, "record"), TokenInfo(tokenize.NAME), TokenInfo(tokenize.OP, "(")):
+                # Find and replace all instances of "record RecordName(..." with the record decorator and "def".
+                start_row, start_col = token.start
+                indent = lines[start_row][:start_col]
+                lines[start_row : start_row + 1] = [f"{indent}@record\n", lines[start_row].replace("record", "def", 1)]
+            case _:
+                pass
 
     # Add the import to the start of the file.
     lines.insert(2, "from record_type import record\n")
@@ -38,26 +36,26 @@ def untransform(src: bytes) -> bytes:
     all_tokens = list(tokenize.tokenize(tokenize_target.readline))
 
     for i, token in enumerate(all_tokens[:-3]):
-        match (token, *all_tokens[i + 1 : i + 3]):
+        match (token, all_tokens[i + 1], all_tokens[i + 2], all_tokens[i + 3]):
             case (
-                tokenize.TokenInfo(tokenize.Name, "from"),
-                tokenize.TokenInfo(tokenize.Name, "record_type"),
-                tokenize.TokenInfo(tokenize.Name, "import"),
-                tokenize.TokenInfo(tokenize.Name, "record"),
+                TokenInfo(tokenize.Name, "from"),
+                TokenInfo(tokenize.Name, "record_type"),
+                TokenInfo(tokenize.Name, "import"),
+                TokenInfo(tokenize.Name, "record"),
             ):
                 # Find the imports of record from record_type and remove them. Probably a bit too much.
                 start_row = token.start[0]
                 del lines[start_row]
             case (
-                tokenize.TokenInfo(tokenize.OP, "@"),
-                tokenize.TokenInfo(tokenize.Name, "record"),
-                tokenize.TokenInfo(tokenize.NEWLINE),
-                tokenize.TokenInfo(tokenize.Name, "def"),
+                TokenInfo(tokenize.OP, "@"),
+                TokenInfo(tokenize.Name, "record"),
+                TokenInfo(tokenize.NEWLINE),
+                TokenInfo(tokenize.Name, "def"),
             ):
-                # Find all places with the @record decorator + "def" and replace them with "struct".
+                # Find all places with the @record decorator + "def" and replace them with "record".
                 start_row = token.start[0]
                 end_row = all_tokens[i + 3].start[0]
-                lines[start_row:end_row] = [lines[end_row].replace(b"def", b"struct", 1)]
+                lines[start_row:end_row] = [lines[end_row].replace(b"def", b"record", 1)]
             case _:
                 pass
 

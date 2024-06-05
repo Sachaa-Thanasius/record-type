@@ -17,9 +17,9 @@ def _make_var_keyword_annotation(annotation: typing.Any) -> typing.Any:
         if annotation.startswith("Unpack["):
             return annotation.removeprefix("Unpack[").removesuffix("]")
         return f"dict[str, {annotation}]"
-    # typing.Unpack explicitly refuses to work with isinstance() and
-    # issubclass() due to returning different things depending on what is
-    # passed into the constructor.
+    # typing.Unpack explicitly refuses to work with isinstance() and issubclass()
+    # due to returning different things depending on what is passed into the
+    # constructor.
     if isinstance(annotation, typing.Unpack[typing.TypedDict].__class__):  # type: ignore
         return annotation.__args__[0]
     return dict[str, annotation]
@@ -44,8 +44,7 @@ class Record:
         other_attrs = frozenset(other_slots)
         self_attrs = frozenset(self_slots)
         if self_attrs != other_attrs:
-            # Avoids the question of what to do if there are extra attributes on
-            # `other`.
+            # Avoids the question of what to do if there are extra attributes on `other`.
             return NotImplemented
 
         for attr in self_attrs:
@@ -117,11 +116,11 @@ def record(func: typing.Callable[..., None]):  # noqa: ANN201 # Not sure how to 
     parameters = (f"object.__setattr__(self, {name!r}, {name})" for name in func_signature.parameters)
     init_body = (f"\n{' ' * 4}").join(parameters) or "pass"
 
-    # Take a page from collections.namedtuple's implementation: creating a new class is faster with type than exec.
+    # Take a page from collections.namedtuple's implementation: creating a new class is faster with type() than exec().
     init_syntax = f"def __init__{init_signature}:\n    {init_body}"
-    globals_: dict[str, typing.Any] = {"__builtins__": {"object": object}}
-    exec(init_syntax, globals_)  # noqa: S102
-    cls_init = globals_["__init__"]
+    global_ns: dict[str, typing.Any] = {"__builtins__": {"object": object}}
+    exec(init_syntax, global_ns)  # noqa: S102
+    cls_init = global_ns["__init__"]
 
     proposed_annotations = func.__annotations__.copy()
     try:
