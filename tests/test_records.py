@@ -180,14 +180,14 @@ def test_eq():
 
     assert Point1D(args[0]) != Point2D(*args)
 
-    class HasSlots:
-        __slots__ = "x", "y"
+    # class HasSlots:
+    #     __slots__ = "x", "y"
 
-    assert HasSlots() != Point2D(*args)
+    # assert HasSlots() != Point2D(*args)
 
-    has_slots = HasSlots()
-    has_slots.x, has_slots.y = args
-    assert has_slots == Point2D(*args)
+    # has_slots = HasSlots()
+    # has_slots.x, has_slots.y = args
+    # assert has_slots == Point2D(*args)
 
 
 def test_hash():

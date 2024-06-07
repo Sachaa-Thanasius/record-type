@@ -81,6 +81,7 @@ ignore = [
     "E501",
     "ISC001",
     "Q003",
+    "RET505", # Allow returns to be in else statements.
 ]
 unfixable = [
     "ERA", # I don't want anything erroneously detected deleted by this.

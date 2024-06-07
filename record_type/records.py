@@ -7,7 +7,8 @@ def _make_var_positional_annotation(annotation: typing.Any) -> typing.Any:
 
     if isinstance(annotation, str):
         return f"tuple[{annotation}]"
-    return tuple[annotation]
+    else:
+        return tuple[annotation]
 
 
 def _make_var_keyword_annotation(annotation: typing.Any) -> typing.Any:
@@ -16,43 +17,25 @@ def _make_var_keyword_annotation(annotation: typing.Any) -> typing.Any:
     if isinstance(annotation, str):
         if annotation.startswith("Unpack["):
             return annotation.removeprefix("Unpack[").removesuffix("]")
-        return f"dict[str, {annotation}]"
+        else:
+            return f"dict[str, {annotation}]"
     # typing.Unpack explicitly refuses to work with isinstance() and issubclass()
     # due to returning different things depending on what is passed into the
     # constructor.
     if isinstance(annotation, typing.Unpack[typing.TypedDict].__class__):  # type: ignore
         return annotation.__args__[0]
-    return dict[str, annotation]
+    else:
+        return dict[str, annotation]
 
 
 class Record:
     __slots__ = ("_record_cached_hash", "_record_cached_repr")
 
     def __eq__(self, other: object, /) -> bool:
-        """Check for equality.
-
-        The comparison is done per-attribute to allow for duck typing (i.e.,
-        nominal typing is not used as a shortcut for comparing).
-        """
-
-        # Implement short-circuit from issue #4.
-        other_slots: tuple[str, ...] | list[object] = getattr(type(other), "__slots__", [object()])
-        self_slots = type(self).__slots__
-        if id(other_slots) == id(self_slots):
-            return True
-
-        other_attrs = frozenset(other_slots)
-        self_attrs = frozenset(self_slots)
-        if self_attrs != other_attrs:
-            # Avoids the question of what to do if there are extra attributes on `other`.
+        cls = type(self)
+        if not isinstance(other, cls):
             return NotImplemented
-
-        for attr in self_attrs:
-            if not hasattr(other, attr):
-                return NotImplemented
-            if getattr(self, attr) != getattr(other, attr):
-                return False
-        return True
+        return all(getattr(self, attr) == getattr(other, attr) for attr in cls.__slots__)
 
     def __hash__(self) -> int:
         try:
